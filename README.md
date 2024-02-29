@@ -1,0 +1,1 @@
+this garbage takes both a normal Revolt account (for use as a selfbot), as well as a bot account. it was designed for automatically indexing invites posted in places they arent supposed to be posted, so they can be preserved even after deleted by moderators
