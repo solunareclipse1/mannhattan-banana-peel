@@ -1,13 +1,19 @@
 #![allow(non_snake_case)]
 #![allow(clippy::needless_return)]
 #![allow(clippy::collapsible_match)]
-
+mod rive;
+use rive::Rive;
 use regex::Regex;
-use rive::prelude::*;
 use std::{env, error::Error};
 use lazy_static::lazy_static;
-use rive::prelude::HttpError::{Api, HttpRequest, Serialization};
-
+use rive_http::Error::{Api, HttpRequest, Serialization};
+use rive_models::data::*;
+use rive_models::message::*;
+use rive_models::channel::*;
+use rive_models::event::*;
+use rive_models::account::*;
+use rive_models::authentication::*;
+use futures_util::StreamExt;
 const INVALID_CHANNELS:[&str; 3] = [
 	"01HBPSCHW964KDCGF7RC4HCCSR", // Barry, 63: test2 (deny)
 	"01FD53QCD84PX7D2GBV5SBE09N", // Revolt: Submit to Discover
@@ -65,11 +71,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 						Some(channel) => {
 							let res = match channel.value() {
 								Channel::TextChannel { server, .. } => {
-									checkForInvites(&S, server, &message).await
+									checkForInvites(&S, &server, &message).await
 								}
 								Channel::DirectMessage { id, .. } => {
 									if message.author == OWNER_ID {
-										handleCommand(&S, id, &message).await
+										handleCommand(&S, &id, &message).await
 									} else if message.author == S.USERID {
 										Ok(())
 									} else {

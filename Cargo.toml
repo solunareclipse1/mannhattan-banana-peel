@@ -6,7 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+futures-util = "0.3.30"
 lazy_static = "1.4.0"
 regex = "1.10.3"
-rive = "=1.2.0"
+rive-cache-inmemory = "1.0.0"
+rive-gateway = { version = "1.1.0", default-features = false, features = ["rustls-tls-webpki-roots"] }
+rive-http = { version = "1.1.0", default-features = false, features = ["rustls-tls-webpki-roots"] }
+rive-models = "1.2.1"
 tokio = { version="1.36.0", features=["full"] }
