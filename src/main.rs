@@ -246,145 +246,29 @@ async fn informOwner(S:&MutableStatic, msg: SendMessageData) {
 	}
 }
 
-async fn tryIndexInviteFromMessage(S:&MutableStatic, msg:&str) -> Result<(), Box<dyn Error>> {
-	return match LINK_RIPPER.captures(msg) {
+async fn tryIndexInviteFromMessage(S:&MutableStatic, msg: &str) -> Result<(), Box<dyn Error>> {
+	return match LINK_RIPPER.captures(&msg) {
 		Some(invites) => {
 			println!("Indexing invite link: {}", &invites["link"]);
 			let data = SendMessageData {
 				content: Some(invites["link"].to_owned()),
 				..Default::default()
 			};
-			//if let Ok(Invite::Server{server_id, server_name, server_icon, ..}) = S.USER.http.fetch_invite(&invites["link"]).await {
-			match S.USER.http.fetch_invite(&invites["link"]).await {
-				Ok(Invite::Server{server_id, server_name, server_icon, ..}) => {
-					match S.BOT.http.fetch_server(INDEX_SERVER).await {
-						Ok(srv) => {
-							if let Some(categories) = srv.categories {
-								for cat in categories {
-									if cat.title == INDEX_CATEGORY {
-										for chan in cat.channels {
-											match S.BOT.http.fetch_channel(chan).await {
-												Ok(c) => {
-													if let Channel::TextChannel{description, ..} = c {
-														if let Some(desc) = description {
-															if desc == server_id {
-																match S.BOT.http.send_message(desc, data.clone()).await {
-																	Ok(_) => return Ok(()),
-																	Err(e) => {
-																		println!("Error whilst trying to finish indexing in an existing channel: {:?}", e);
-																		let data = SendMessageData {
-																			content: Some("Failed to index existing: LINK".replace("LINK", &invites["link"])),
-																			..Default::default()
-																		};
-																		logToNotes(S, data.clone()).await;
-																		informOwner(S, data).await;
-																		return Err(Box::new(e));
-																	}
-																}
-															}
-														}
-													}
-												}
-												Err(e) => {
-													println!("Error whilst trying to fetch index server while indexing: {:?}", e);
-													let data = SendMessageData {
-														content: Some("Failed to get index server when fetching: LINK".replace("LINK", &invites["link"])),
-														..Default::default()
-													};
-													logToNotes(S, data.clone()).await;
-													informOwner(S, data).await;
-													return Err(Box::new(e));
-												}
-											}
-										}
-										// Need to create a new channel
-										match S.BOT.http.create_channel(&server_id, CreateChannelData{
-											channel_type: ChannelType::Text,
-											name: server_name.clone(),
-											description: Some(server_id.clone()),
-											nsfw: Some(false),
-										}).await {
-											Ok(chan) => {
-												if let Channel::TextChannel{id, ..} = chan {
-													match S.BOT.http.send_message(id, data.clone()).await {
-														Ok(_) => return Ok(()),
-														Err(e) => {
-															println!("Error whilst trying to finish indexing into a new channel: {:?}", e);
-															let data = SendMessageData {
-																content: Some("Failed to index new: LINK".replace("LINK", &invites["link"])),
-																..Default::default()
-															};
-															logToNotes(S, data.clone()).await;
-															informOwner(S, data).await;
-															return Err(Box::new(e));
-														}
-													}
-												}
-											}
-											Err(e) => {
-												println!("Error whilst trying to create new channel for: {:?}", e);
-												let data = SendMessageData {
-													content: Some("Failed to create new index for: LINK".replace("LINK", &invites["link"])),
-													..Default::default()
-												};
-												logToNotes(S, data.clone()).await;
-												informOwner(S, data).await;
-												return Err(Box::new(e));
-											}
-										}
-									}
-								}
-							} else {
-								println!("Error: No categories in index server! Reporting...");
-								let data = SendMessageData {
-									content: Some("Failed to index because idx server has no categories: LINK".replace("LINK", &invites["link"])),
-									..Default::default()
-								};
-								logToNotes(S, data.clone()).await;
-								informOwner(S, data).await;
-								return Err("No categories found in the Index server!".into());
-							}
-						},
-						Err(e) => {
-							println!("Error whilst trying to fetch index server while indexing: {:?}", e);
-							let data = SendMessageData {
-								content: Some("Failed to get index server when fetching: LINK".replace("LINK", &invites["link"])),
-								..Default::default()
-							};
-							logToNotes(S, data.clone()).await;
-							informOwner(S, data).await;
-							return Err(Box::new(e));
-						}
-					}
-				}
+			match S.BOT.http.send_message("01HQS9NN019MR8RHN2VHG259WB", data.clone()).await {
+				Ok(_) => Ok(()),
 				Err(e) => {
-					println!("Error whilst fetching invite data: {:?}", e);
+					println!("Error whilst trying to finish indexing: {:?}", e);
 					let data = SendMessageData {
-						content: Some("Failed to fetch invite: LINK".replace("LINK", &invites["link"])),
+						content: Some("Failed to index: LINK".replace("LINK", &invites["link"])),
 						..Default::default()
 					};
 					logToNotes(S, data.clone()).await;
 					informOwner(S, data).await;
-					return Err(Box::new(e));
+					Err(Box::new(e))
 				}
-				_ => return Err("Not a server invite!".into())
 			}
-			return Err("Fetching invite failed somehow?!".into());
-			//match S.BOT.http.send_message("01HQS9NN019MR8RHN2VHG259WB", data.clone()).await {
-			//	Ok(_) => Ok(()),
-			//	Err(e) => {
-			//		println!("Error whilst trying to finish indexing: {:?}", e);
-			//		let data = SendMessageData {
-			//			content: Some("Failed to index: LINK".replace("LINK", &invites["link"])),
-			//			..Default::default()
-			//		};
-			//		logToNotes(S, data.clone()).await;
-			//		informOwner(S, data).await;
-			//		return Err(Box::new(e));
-			//	}
-			//}
 		}
-		None => return Err("No invites!".into()), // didnt find an invite
+		None => Err("No invites!".into()), // didnt find an invite
 	};
 }
 
